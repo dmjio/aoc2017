@@ -8,6 +8,7 @@ import qualified Data.Map.Strict as M
 import           Data.Maybe
 import           Debug.Trace
 
+main :: IO ()
 main = print partA >> print partB
 
 squares :: [[Int]]
@@ -27,48 +28,21 @@ data Dir = U | L | R | D
 partA :: Int
 partA = abs x + abs y
   where
-   (x,y) = resultMap M.! 289326
-
-resultMap :: Map Int (Int, Int)
-resultMap = go squares (0, 0, 1, M.singleton 1 (0,0))
-  where
-    go [] (_,_,_,map') = map'
-    go (xs:xxs) rs =
-      go xxs $! (calcMoves xs rs)
-
-    calcMoves xs rs@(x,y,k,_) = do
-      let moveCount = length xs `div` 4
-          moveRight = [ R | moveCount /= 0 ]
-          moveDirs  =
-            concat [ moveRight
-                   , replicate (moveCount - 1) U
-                   , replicate moveCount L
-                   , replicate moveCount D
-                   , replicate moveCount R
-                   ]
-          moves = zip xs moveDirs
-      shiftCoords rs moves
-
-    shiftCoords rs [] = rs
-    shiftCoords (!x,!y,!k,!map') ((!n,!dir):xs) = do
-      shiftCoords ( newX
-                  , newY
-                  , n
-                  , M.insert n (newX, newY) map'
-                  ) xs
-        where
-         (!newX, !newY) =
-           case dir of
-             U -> (x,y+1)
-             D -> (x,y-1)
-             L -> (x-1,y)
-             R -> (x+1,y)
+   (x,y) = fst results
 
 partB :: Int
-partB = go squares (0, 0, 1, M.singleton (0,0) 1, 0)
+partB = snd results
+
+results :: ((Int, Int), Int)
+results = go squares ( 0
+                     , 0
+                     , 1
+                     , M.singleton 1 (0,0)
+                     , M.singleton (0,0) 1
+                     , 0
+                     )
   where
-    go _ (_,_,_,_,x) | x >= 289326 = x
-    go [] (_,_,_,_,x) = x
+    go [] (_,_,_,map',_,!x) = (map' M.! 289326, x)
     go (xs:xxs) rs = go xxs $! calcMoves xs rs
 
     calcMoves xs rs = do
@@ -85,24 +59,24 @@ partB = go squares (0, 0, 1, M.singleton (0,0) 1, 0)
       shiftCoords rs moves
 
     shiftCoords rs [] = rs
-    shiftCoords rs@(_,_,_,_,!max') _ | max' >= 289326 = rs
-    shiftCoords (!x,!y,!k,!map',!max') ((!n,!dir):xs) = do
-      let (newMax, newMap) = specialInsert (newX, newY) n map'
+    shiftCoords (!x,!y,_,!map',!sumMap,!max') ((!n,!dir):xs) = do
+      let (newMax, newSumMap) = insertSum (newX, newY) n sumMap
       shiftCoords ( newX
                   , newY
                   , n
-                  , newMap
-                  , newMax
+                  , M.insert n (newX, newY) map'
+                  , newSumMap
+                  , if max' >= 289326 then max' else newMax
                   ) xs
         where
-         (!newX, !newY) =
-           case dir of
-             U -> (x,y+1)
-             D -> (x,y-1)
-             L -> (x-1,y)
-             R -> (x+1,y)
+          (!newX, !newY) =
+            case dir of
+              U -> (x,y+1)
+              D -> (x,y-1)
+              L -> (x-1,y)
+              R -> (x+1,y)
 
-    specialInsert (x,y) n map' = do
+    insertSum (x,y) n map' = do
       let sum = getAdjSum (x,y) map'
       (sum, M.insert (x,y) sum map')
 
