@@ -2,8 +2,9 @@
 {-#LANGUAGE BangPatterns#-}
 module Main where
 
-import           Data.Map    (Map)
+import           Data.Map        (Map)
 import qualified Data.Map.Strict as M
+import           Debug.Trace
 
 main :: IO ()
 main = print partA
@@ -27,14 +28,20 @@ partA = abs x + abs y
   where
    (x,y) = resultMap M.! 289326
 
+flippedMap :: Map (Int, Int) Int
+flippedMap =
+  M.fromList [ (v,k)
+             | (k,v) <- M.assocs resultMap
+             ]
+
 resultMap :: Map Int (Int, Int)
-resultMap = go squares (0,0,1,mempty)
+resultMap = go squares (0,0,1,M.singleton 1 (0,0))
   where
     go [] (_,_,_,map') = map'
     go (xs:xxs) rs =
       go xxs (calcMoves xs rs)
 
-    calcMoves xs rs = do
+    calcMoves xs rs@(x,y,k,_) = do
       let moveCount = length xs `div` 4
           moveRight = [ R | moveCount /= 0 ]
           moveDirs  =
@@ -51,16 +58,16 @@ resultMap = go squares (0,0,1,mempty)
     shiftCoords (!x,!y,!k,!map') ((!n,!dir):xs) = do
       shiftCoords ( newX
                   , newY
-                  , newN
-                  , M.insert k (x, y) map'
+                  , n
+                  , M.insert n (newX, newY) map'
                   ) xs
         where
-         (!newX, !newY, !newN) =
+         (!newX, !newY) =
            case dir of
-             U -> (x,y+1,n+1)
-             D -> (x,y-1,n+1)
-             L -> (x-1,y,n+1)
-             R -> (x+1,y,n+1)
+             U -> (x,y+1)
+             D -> (x,y-1)
+             L -> (x-1,y)
+             R -> (x+1,y)
 
 partB = undefined
 
