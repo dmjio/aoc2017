@@ -39,7 +39,7 @@ results = go squares ( 0 -- x coord
                      , 1 -- counter
                      , M.singleton 1 (0,0) -- part A map of coordinates
                      , M.singleton (0,0) 1 -- part B map of adjacent sums
-                     , 0
+                     , 0 -- maximum sum
                      )
   where
     go [] (_,_,_,m,_,!x) = (m M.! 289326, x)
