@@ -34,15 +34,15 @@ partB :: Int
 partB = snd results
 
 results :: ((Int, Int), Int)
-results = go squares ( 0
-                     , 0
-                     , 1
-                     , M.singleton 1 (0,0)
-                     , M.singleton (0,0) 1
+results = go squares ( 0 -- x coord
+                     , 0 -- y coord
+                     , 1 -- counter
+                     , M.singleton 1 (0,0) -- part A map of coordinates
+                     , M.singleton (0,0) 1 -- part B map of adjacent sums
                      , 0
                      )
   where
-    go [] (_,_,_,map',_,!x) = (map' M.! 289326, x)
+    go [] (_,_,_,m,_,!x) = (m M.! 289326, x)
     go (xs:xxs) rs = go xxs $! calcMoves xs rs
 
     calcMoves xs rs = do
@@ -59,12 +59,12 @@ results = go squares ( 0
       shiftCoords rs moves
 
     shiftCoords rs [] = rs
-    shiftCoords (!x,!y,_,!map',!sumMap,!max') ((!n,!dir):xs) = do
+    shiftCoords (!x,!y,_,m,sumMap,!max') ((!n,!dir):xs) = do
       let (newMax, newSumMap) = insertSum (newX, newY) n sumMap
       shiftCoords ( newX
                   , newY
                   , n
-                  , M.insert n (newX, newY) map'
+                  , M.insert n (newX, newY) m
                   , newSumMap
                   , if max' >= 289326 then max' else newMax
                   ) xs
@@ -76,23 +76,15 @@ results = go squares ( 0
               L -> (x-1,y)
               R -> (x+1,y)
 
-    insertSum (x,y) n map' = do
-      let sum = getAdjSum (x,y) map'
-      (sum, M.insert (x,y) sum map')
+    insertSum (x,y) n m = do
+      let sum = getAdjSum (x,y) m
+      (sum, M.insert (x,y) sum m)
 
-    getAdjSum (x,y) map' = sum (catMaybes ls)
-      where
-        ls = [
-             M.lookup (x+1,y) map'
-           , M.lookup (x,y+1) map'
-           , M.lookup (x+1,y+1) map'
-
-           , M.lookup (x-1,y) map'
-           , M.lookup (x,y-1) map'
-           , M.lookup (x-1,y-1) map'
-
-           , M.lookup (x+1,y-1) map'
-           , M.lookup (x-1,y+1) map'
-           ]
+    getAdjSum (x,y) m =
+      sum $ mapMaybe (`M.lookup` m)
+        [ (dx + x, y + dy)
+        | dx <- [-1..1]
+        , dy <- [-1..1]
+        ]
 
 
