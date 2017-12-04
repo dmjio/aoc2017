@@ -20,10 +20,3 @@ partB = do
       let ks = words x
       return $ length (nub (map sort ks)) == length ks
   print $ length (filter (==True) zs)
-
-
-
-
-
-
-
