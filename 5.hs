@@ -22,15 +22,15 @@ main = do
 partA :: [Int] -> IO ()
 partA nums =
     flip evalStateT (nums, 0, 0) $ fix $ \loop -> do
-      (nums, index, moveCount) <- get
+      (nums, !index, !moveCount) <- get
       let n = length nums
           k = nums !! index
           newIndex = k + index
-          newNums = nums & ix index .~ k + 1
+          !newNums = nums & ix index .~ k + 1
       if newIndex >= n
          then liftIO (print moveCount)
          else do
-           put (newNums, newIndex, moveCount + 1)
+           put $! (newNums, newIndex, moveCount + 1)
            loop
 
 partB :: [Int] -> IO ()
