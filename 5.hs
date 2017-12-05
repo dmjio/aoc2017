@@ -10,8 +10,6 @@ import           Control.Monad.State
 import           Data.List
 import qualified Data.Vector         as V
 import qualified Data.Vector.Mutable as MV
-import           Debug.Trace
-import           GHC.ST
 
 main :: IO ()
 main = do
@@ -28,32 +26,26 @@ partA nums =
           newIndex = k + index
           !newNums = nums & ix index .~ k + 1
       if newIndex >= n
-         then liftIO (print moveCount)
+         then liftIO $ print (moveCount + 1)
          else do
-           put $! (newNums, newIndex, moveCount + 1)
+           put (newNums, newIndex, moveCount + 1)
            loop
 
 partB :: [Int] -> IO ()
 partB nums = do
-  let len = V.length (V.fromList nums)
-      !_  = V.modify (go len) (V.fromList nums)
-  pure ()
+  let vec = V.fromList nums
+  go 0 0 (V.length vec) =<< V.thaw vec
     where
-      go :: Int -> V.MVector s Int -> ST s ()
-      go = go' 0 0
-
-      go' !index !moveCount !n m = do
+      go !index !moveCount !n m =
          if index >= n
-            then do
-              traceShow moveCount $ pure ()
+            then
+              print moveCount
             else do
                k <- MV.unsafeRead m index
                let newIndex = k + index
                if k >= 3
-                  then do
-                    subtract 1 <$> MV.unsafeRead m index >>=
-                      MV.unsafeWrite m index
-                  else do
-                    (+1) <$> MV.unsafeRead m index >>=
-                      MV.unsafeWrite m index
-               go' newIndex (moveCount + 1) n m
+                  then
+                    MV.unsafeModify m (subtract 1) index
+                  else
+                    MV.unsafeModify m (+1) index
+               go newIndex (moveCount + 1) n m
