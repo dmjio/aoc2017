@@ -35,14 +35,14 @@ partA nums =
 
 partB :: [Int] -> IO ()
 partB nums = do
-  let l = V.length (V.fromList nums)
-      !_ = V.modify (flip go l) (V.fromList nums)
+  let len = V.length (V.fromList nums)
+      !_  = V.modify (go len) (V.fromList nums)
   pure ()
     where
-      go :: V.MVector s Int -> Int -> ST s ()
-      go m len = go' 0 0 m len
+      go :: Int -> V.MVector s Int -> ST s ()
+      go = go' 0 0
 
-      go' !index !moveCount m !n = do
+      go' !index !moveCount !n m = do
          if index >= n
             then do
               traceShow moveCount $ pure ()
@@ -56,4 +56,4 @@ partB nums = do
                   else do
                     (+1) <$> MV.unsafeRead m index >>=
                       MV.unsafeWrite m index
-               go' newIndex (moveCount + 1) m n
+               go' newIndex (moveCount + 1) n m
