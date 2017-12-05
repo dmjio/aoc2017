@@ -4,6 +4,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Main where
 
+import Data.Bool
 import           Control.Lens
 import           Control.Monad
 import           Control.Monad.State
@@ -42,10 +43,8 @@ partB nums = do
               print moveCount
             else do
                k <- MV.unsafeRead m index
-               let newIndex = k + index
-               if k >= 3
-                  then
-                    MV.unsafeModify m (subtract 1) index
-                  else
-                    MV.unsafeModify m (+1) index
-               go newIndex (moveCount + 1) n m
+               bool minus add (k>=3)
+               go (k + index) (moveCount + 1) n m
+                 where
+                   add = MV.unsafeModify m (subtract 1) index
+                   minus = MV.unsafeModify m (+1) index
