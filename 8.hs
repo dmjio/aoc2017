@@ -4,6 +4,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Main where
 
+import           Control.Lens
 import           Control.Monad
 import           Data.Char
 import           Data.Function
@@ -15,53 +16,50 @@ import           Data.Set
 import           Data.Tree
 import qualified Data.Vector     as V
 
-ks =
-  ["b inc 5 if a > 1"
-  ,"a inc 1 if b < 5"
-  ,"c dec -10 if a >= 1"
-  ,"c inc -20 if c == 10"
-  ]
-
 main :: IO ()
 main = do
   rs :: [String] <- lines <$> readFile "8.txt"
-  let (max', m) = parse (populate M.empty rs) rs
-  print $ snd $ head $ sortBy (flip compare `on` snd) $ M.toList m
-  print max'
+  let (partB, partA) = parse rs (populate M.empty rs)
+  mapM_ print [ partA, partB ]
 
+-- | Populate empty map w/ registers initialized to 0
 populate :: M.Map String Int -> [String] -> M.Map String Int
 populate m rs = mconcat $ Prelude.map go rs
   where
     go :: String -> M.Map String Int
-    go x = M.insert (words x !! 4) 0 (M.insert (words x !! 0) 0 m)
+    go x = M.insert (words x !! 0) 0 m
 
-parse :: M.Map String Int -> [String] -> (Int, M.Map String Int)
-parse m' rs = go m' 0 rs
+-- | Given an initialized map of registers and a list of instructions
+-- Find the maximum value in a register after applying all instructions
+-- And find the maximum value that was ever recorded in a register (part b)
+parse :: [String] -> M.Map String Int -> (Int, Int)
+parse rs = go rs 0
   where
-    go :: M.Map String Int -> Int -> [String] -> (Int, M.Map String Int)
-    go m h [] = (h,m)
-    go m h' (x:xs) =
+    go :: [String]
+       -> Int
+       -> M.Map String Int
+       -> (Int, Int)
+    go [] h m = (h, maximum m)
+    go (x:xs) h m =
       case words x of
-        regName:op':val:"if":regName2:cond:pred:_ -> go (M.alter f regName m) h xs
+        regName:op:val:"if":regName2:cond:pred:_ ->
+          go xs highest (M.alter f regName m)
             where
-              h = if h' > highest
-                    then h'
-                    else highest
-              highest = snd $ head $ sortBy (flip compare `on` snd) $ M.toList m
-              f Nothing = error "hmm"
+              highest = max (maximum m) h
+              f Nothing = Nothing
               f (Just regValue) = do
-                let r' = m M.! regName2
-                    zz = (toPred cond) r' (read pred :: Int)
-                if zz
-                   then do
-                      pure $ case op' of
-                        "inc" -> regValue + read val
-                        "dec" -> regValue - read val
-                   else Just regValue
+                let (#%#) = toCond cond
+                pure $ if m M.! regName2 #%# read pred
+                         then case op of
+                                "inc" -> regValue + read val
+                                "dec" -> regValue - read val
+                         else regValue
 
-toPred "<" = (<)
-toPred ">" = (>)
-toPred ">=" = (>=)
-toPred "<=" = (<=)
-toPred "!=" = (/=)
-toPred "==" = (==)
+-- | Create conditional operation
+toCond :: (Eq a, Ord a) => String -> (a -> a -> Bool)
+toCond "<" = (<)
+toCond ">" = (>)
+toCond ">=" = (>=)
+toCond "<=" = (<=)
+toCond "!=" = (/=)
+toCond "==" = (==)
