@@ -1,19 +1,14 @@
 module Main where
 
-import qualified Data.Map        as M
+import           Data.Bool
+import qualified Data.Map   as M
+import           Data.Maybe
 
 main :: IO ()
 main = do
   rs <- lines <$> readFile "8.txt"
-  let (partB, partA) = parse rs (populate M.empty rs)
+  let (partB, partA) = parse rs M.empty
   mapM_ print [ partA, partB ]
-
--- | Populate empty map w/ registers initialized to 0
-populate :: M.Map String Int -> [String] -> M.Map String Int
-populate m rs = mconcat (map go rs)
-  where
-    go :: String -> M.Map String Int
-    go x = M.insert (words x !! 0) 0 m
 
 -- | Given an initialized map of registers and a list of instructions
 -- Find the maximum value in a register after applying all instructions
@@ -29,11 +24,11 @@ parse rs = go rs 0
     go (x:xs) h m =
       case words x of
         regName:op:val:"if":regName2:cond:pred:_ ->
-          go xs highest (M.alter f regName m)
+          go xs highest (M.alter (f . fromMaybe 0) regName m)
             where
-              highest = max (maximum m) h
-              f Nothing = Just 0
-              f (Just regValue) = do
+              highest = max safeMax h
+              safeMax = bool (maximum m) 0 (M.size m == 0)
+              f regValue = do
                 let (#%#) = toCond cond
                 pure $ if M.findWithDefault 0 regName2 m #%# read pred
                          then
